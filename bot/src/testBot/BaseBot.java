@@ -1,4 +1,4 @@
-package bot;
+package testBot;
 
 import ai.abstraction.AbstractionLayerAI;
 import ai.abstraction.pathfinding.AStarPathFinding;
@@ -18,11 +18,13 @@ import rts.units.Unit;
 import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 
-public class MyBot extends AbstractionLayerAI {    
+public class BaseBot extends AbstractionLayerAI 
+{    
     private UnitTypeTable utt;
     private UnitType worker;
     
-    public MyBot(UnitTypeTable utt) {
+    public BaseBot(UnitTypeTable utt) 
+    {
         super(new AStarPathFinding());
         this.utt = utt;
         worker = utt.getUnitType("Worker");
@@ -30,29 +32,41 @@ public class MyBot extends AbstractionLayerAI {
     
 
     @Override
-    public void reset() {
+    public void reset() 
+    {
     }
 
     
     @Override
-    public AI clone() {
-        return new MyBot(utt);
+    public AI clone() 
+    {
+        return new BaseBot(utt);
     }
    
     
+    
     @Override
-    public PlayerAction getAction(int player, GameState gs) {
+    public PlayerAction getAction(int player, GameState gs) 
+    {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         
-        for (Unit unit : pgs.getUnits()) {
+        for (Unit unit : pgs.getUnits()) 
+        {
             // TODO: issue commands to units
+        
+        	
         }
         
         return translateActions(player, gs);
     }
     
+    
+    
+    
     @Override
-    public List<ParameterSpecification> getParameters() {
+    public List<ParameterSpecification> getParameters() 
+    {
         return new ArrayList<>();
     }
+    
 }
