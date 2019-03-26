@@ -25,6 +25,15 @@ public class MangoBot extends AbstractionLayerAI
     private UnitTypeTable utt;
     private UnitType worker;
     private UnitType base;
+    private UnitType barracks;
+    
+    private int enemyRaxCount;
+    private int workersNear;
+    
+    private Unit myBase;
+    
+    private List<Unit> myWorkers = new ArrayList<Unit>();
+    private List<Unit> enemyWorkers = new ArrayList<Unit>();
     
     public MangoBot(UnitTypeTable utt) 
     {
@@ -32,6 +41,9 @@ public class MangoBot extends AbstractionLayerAI
         this.utt = utt;
         worker = utt.getUnitType("Worker");
         base = utt.getUnitType("Base");
+        barracks = utt.getUnitType("Barracks");
+        
+        enemyRaxCount = 0;
     }
     
 
@@ -54,21 +66,75 @@ public class MangoBot extends AbstractionLayerAI
         PhysicalGameState pgs = gs.getPhysicalGameState();
         Player getPlayer = gs.getPlayer(player);
         
+        //Reset rax count.
+        enemyRaxCount = 0;
+        workersNear = 0;
+        
+        // TODO: issue commands to units
         for (Unit unit : pgs.getUnits()) 
         {
-            // TODO: issue commands to units
+        	
+        	//Player actions
         	if (unit.getPlayer() == player) 
         	{
-            	//Train worker from player's base
-            	if (unit.getType() == base)
-            	{        		
-            		train(unit, worker);
-            	}
-            	
+        		if (unit.getType() == base) 
+        		{
+        			myBase = unit;
+        		}
+        		
+            	//Find workers
+            	if (unit.getType() == worker) 
+            	{
+            		//Add worker
+            		myWorkers.add(unit);
+            	}  
+        	}
+        	
+        	//Check how many barracks the enemy has built.
+        	if ((unit.getType() == barracks) && (isEnemy(unit.getPlayer(), player))) 
+        	{
+        		enemyRaxCount++;
+        	}
+        	
+        	//Check for nearby enemy workers
+        	if ((unit.getType() == worker) && (isEnemy(unit.getPlayer(), player))) 
+        	{
+        		if ((unit.getX() - myBase.getX() < 5) || (unit.getY() - myBase.getY() < 5)) 
+        		{
+        			for (Unit worker : myWorkers)
+        			{
+        				attack(worker, unit);
+        			}
+        		}
+        	}
+        	
+
+        	//Player actions
+        	if (unit.getPlayer() == player) 
+        	{
+            	//Find workers
             	if (unit.getType() == worker) 
             	{
             		workerBehaviour(unit, getPlayer, pgs);
-            	}        		
+            	}  
+        		
+        		if (enemyRaxCount > 0) 
+        		{
+        			//Do macro/defense stuff
+        		}
+        		
+        		else 
+        		{
+        			//Prepare for worker rush
+        			
+                	//Train worker from player's base
+                	if (unit.getType() == base)
+                	{        		
+                		train(unit, worker);
+                	}
+        		}
+        		
+            	     		
         	}	  	
         }
         
