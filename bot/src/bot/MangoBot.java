@@ -2,6 +2,7 @@ package bot;
 
 import ai.abstraction.AbstractAction;
 import ai.abstraction.AbstractionLayerAI;
+import ai.abstraction.Attack;
 import ai.abstraction.Harvest;
 import ai.abstraction.pathfinding.AStarPathFinding;
 import ai.core.AI;
@@ -32,8 +33,17 @@ public class MangoBot extends AbstractionLayerAI
     
     private Unit myBase;
     
+    //All the player's workers
     private List<Unit> myWorkers = new ArrayList<Unit>();
+    
+    //All the enemy workers
     private List<Unit> enemyWorkers = new ArrayList<Unit>();
+    
+    //Enemy workers near base
+    private List<Unit> nearbyEnemyWorkers = new ArrayList<Unit>();
+    
+    //Current target when workers are attacking nearby enemy workers.
+    int attackedWorkerIndex = 0;
     
     public MangoBot(UnitTypeTable utt) 
     {
@@ -96,15 +106,28 @@ public class MangoBot extends AbstractionLayerAI
         		enemyRaxCount++;
         	}
         	
-        	//Check for nearby enemy workers
+        	//Catalogue enemy workers
         	if ((unit.getType() == worker) && (isEnemy(unit.getPlayer(), player))) 
         	{
+        		//Get all enemy workers
+        		enemyWorkers.add(unit);
+        		
+        		//Check for nearby enemy workers
         		if ((unit.getX() - myBase.getX() < 5) || (unit.getY() - myBase.getY() < 5)) 
         		{
-        			for (Unit worker : myWorkers)
+        			nearbyEnemyWorkers.add(unit);
+        		}
+        		
+        		//Remove any workers who are no longer nearby from the nearby workers list
+        		else 
+        		{
+        			for (int i = 0; i < nearbyEnemyWorkers.size(); i++) 
         			{
-        				attack(worker, unit);
-        			}
+        				if (nearbyEnemyWorkers.get(i) == unit) 
+        				{
+        					nearbyEnemyWorkers.remove(i);
+        				}
+        			}      			
         		}
         	}
         	
@@ -137,6 +160,42 @@ public class MangoBot extends AbstractionLayerAI
             	     		
         	}	  	
         }
+        
+        /*
+         * After all units evaluated this tick:
+         * */
+       
+        
+        //Number of targets
+        int numNearbyEnemyWorkers = nearbyEnemyWorkers.size();
+        
+        //Each worker, if not attacking, attacks an enemy worker that is nearby.
+		for (Unit worker : myWorkers)
+		{
+			//This worker's current action
+			AbstractAction currentWorkerAction = getAbstractAction(worker);
+			
+			//If a worker is not attacking and there are available targets, assign it to attack the target
+			if ((currentWorkerAction instanceof Attack == false) && (attackedWorkerIndex < numNearbyEnemyWorkers)) 
+			{
+				attack(worker, nearbyEnemyWorkers.get(attackedWorkerIndex));
+				
+				//Ensure we do not go outside index range.
+				if (attackedWorkerIndex + 1 < numNearbyEnemyWorkers) 
+				{
+					//Move on to next target
+					attackedWorkerIndex++;
+				}
+				
+				else 
+				{
+					attackedWorkerIndex = 0;
+				}
+			}	
+
+			
+		}
+        
         
         return translateActions(player, gs);
     }
