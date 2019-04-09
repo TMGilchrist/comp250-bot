@@ -42,8 +42,15 @@ public class MangoBot extends AbstractionLayerAI
     //Enemy workers near base
     private List<Unit> nearbyEnemyWorkers = new ArrayList<Unit>();
     
+    //Single nearest enemy worker
+    private Unit nearestEnemyWorker;
+    
     //Current target when workers are attacking nearby enemy workers.
     int attackedWorkerIndex = 0;
+    
+    //Number of workers that must alwyas be harvesting.
+    int workersAlwaysHarvesting = 1;
+    
     
     public MangoBot(UnitTypeTable utt) 
     {
@@ -80,11 +87,16 @@ public class MangoBot extends AbstractionLayerAI
         enemyRaxCount = 0;
         workersNear = 0;
         
+        System.out.print("Get Action called:");
+        myWorkers.clear();
+        enemyWorkers.clear();
+        nearbyEnemyWorkers.clear();
+        
         // TODO: issue commands to units
         for (Unit unit : pgs.getUnits()) 
         {
         	
-        	//Player actions
+        	//Get player's units
         	if (unit.getPlayer() == player) 
         	{
         		if (unit.getType() == base) 
@@ -116,6 +128,7 @@ public class MangoBot extends AbstractionLayerAI
         		if ((unit.getX() - myBase.getX() < 5) || (unit.getY() - myBase.getY() < 5)) 
         		{
         			nearbyEnemyWorkers.add(unit);
+        			nearestEnemyWorker = unit; //Test with just the nearest worker at a time
         		}
         		
         		//Remove any workers who are no longer nearby from the nearby workers list
@@ -138,7 +151,7 @@ public class MangoBot extends AbstractionLayerAI
             	//Find workers
             	if (unit.getType() == worker) 
             	{
-            		workerBehaviour(unit, getPlayer, pgs);
+            		//workerBehaviour(unit, getPlayer, pgs);
             	}  
         		
         		if (enemyRaxCount > 0) 
@@ -169,16 +182,29 @@ public class MangoBot extends AbstractionLayerAI
         //Number of targets
         int numNearbyEnemyWorkers = nearbyEnemyWorkers.size();
         
+        //Workers that will always continue harvesting
+        int forcedHarvestingWorkers = 0;
+        
         //Each worker, if not attacking, attacks an enemy worker that is nearby.
 		for (Unit worker : myWorkers)
-		{
-			//This worker's current action
+		{			
 			AbstractAction currentWorkerAction = getAbstractAction(worker);
 			
-			//If a worker is not attacking and there are available targets, assign it to attack the target
-			if ((currentWorkerAction instanceof Attack == false) && (attackedWorkerIndex < numNearbyEnemyWorkers)) 
+			//If harvesting
+			if ((currentWorkerAction instanceof Harvest == true) && (forcedHarvestingWorkers < workersAlwaysHarvesting)) 
 			{
-				attack(worker, nearbyEnemyWorkers.get(attackedWorkerIndex));
+				forcedHarvestingWorkers++;
+			}
+			
+			
+			//This worker's current action
+			//AbstractAction currentWorkerAction = getAbstractAction(worker);
+			
+			//If a worker is not attacking and there are available targets, assign it to attack the target
+			else if ((currentWorkerAction instanceof Attack == false) && (attackedWorkerIndex < numNearbyEnemyWorkers)) 
+			{
+				//attack(worker, nearbyEnemyWorkers.get(attackedWorkerIndex));
+				attack(worker, nearestEnemyWorker);
 				
 				//Ensure we do not go outside index range.
 				if (attackedWorkerIndex + 1 < numNearbyEnemyWorkers) 
@@ -193,9 +219,14 @@ public class MangoBot extends AbstractionLayerAI
 				}
 			}	
 
+			else 
+			{
+				workerBehaviour(worker, getPlayer, pgs);				
+			}
 			
 		}
         
+		System.out.print(numNearbyEnemyWorkers + "\n");
         
         return translateActions(player, gs);
     }
@@ -223,6 +254,7 @@ public class MangoBot extends AbstractionLayerAI
             Unit closestResource = null;
             int closestDistance = 0;
             
+            //Get closest resources
             for (Unit u2 : pgs.getUnits()) 
             {
                 if (u2.getType().isResource) 
@@ -237,6 +269,8 @@ public class MangoBot extends AbstractionLayerAI
             }
             
             closestDistance = 0;
+            
+            //Get closest stockpile (player's base)
             for (Unit u2 : pgs.getUnits()) 
             {
                 if (u2.getType().isStockpile && u2.getPlayer() == player.getID()) 
@@ -250,9 +284,18 @@ public class MangoBot extends AbstractionLayerAI
                 }
             }
             
+            //Harvest
             if (closestResource != null && closestBase != null) 
             {
-            	harvest(worker, closestResource, closestBase);
+    			//This worker's current action
+    			AbstractAction currentWorkerAction = getAbstractAction(worker);
+    			
+    			//If not already attacking, harvest
+    			if (currentWorkerAction instanceof Attack == false) 
+    			{
+                	harvest(worker, closestResource, closestBase);
+    			}   			
+
             }
         }    	
     
