@@ -65,18 +65,21 @@ public class MangoBot extends AbstractionLayerAI
     //Enemy workers near base
     private List<Unit> nearbyEnemyWorkers = new ArrayList<Unit>();
     
+    //Player workers who must always work.    
+    private List<Unit> forcedHarvestingWorkers = new ArrayList<Unit>();
+    
     
     //Single nearest enemy worker
     private Unit nearestEnemyWorker;
-    
-    
     
     //Current target when workers are attacking nearby enemy workers.
     int attackedWorkerIndex = 0;
     
     //Number of workers that must always be harvesting.
-    int workersAlwaysHarvesting = 1;
+    int minimumHarvesterCount = 1;
     
+    //Maximum number of workers to train.
+    int maxWorkerTrain = 50;
     
     
     //Setup unit types
@@ -299,7 +302,7 @@ public class MangoBot extends AbstractionLayerAI
                 	if (unit.getType() == base)
                 	{   
                 		//Training up to 5 workers. This number should be a variable!
-                		if (myWorkers.size() < 5) 
+                		if (myWorkers.size() < maxWorkerTrain) 
                 		{
                     		train(unit, worker);
                 		}
@@ -316,6 +319,12 @@ public class MangoBot extends AbstractionLayerAI
         //Worker actions.
 		for (Unit worker : myWorkers)
 		{	
+			if (forcedHarvestingWorkers.size() < minimumHarvesterCount) 
+			{
+    			HarvestResource(worker, getPlayer, pgs);
+    			forcedHarvestingWorkers.add(worker);
+			}
+			
 			//Use workers to defend if enemies are nearby.
 			if (nearbyEnemyUnits.size() > 0) 
 			{
@@ -437,7 +446,7 @@ public class MangoBot extends AbstractionLayerAI
 		} 				
     	
 		//Send harvesting workers to help if there is at least one worker still harvesting
-		else if (myHarvestingWorkers.size() > 1) 
+		else if ((myHarvestingWorkers.size() > 1) && (forcedHarvestingWorkers.contains(worker) == false)) 
     	{
     		attack(worker, targetEnemy);    		
     	}
@@ -484,6 +493,7 @@ public class MangoBot extends AbstractionLayerAI
         enemyBases = new ArrayList<Unit>();
         nearbyEnemyWorkers = new ArrayList<Unit>();
         nearbyEnemyUnits = new ArrayList<Unit>();
+        forcedHarvestingWorkers = new ArrayList<Unit>();
         
         enemyRaxCount = 0;
         workersNear = 0;
