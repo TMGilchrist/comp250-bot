@@ -313,30 +313,10 @@ public class MangoBot extends AbstractionLayerAI
         	
         }
         
-		//System.out.print("Size of nearby enemies list: " + Integer.toString(nearbyEnemyUnits.size()) + "\n");   
-		//System.out.println("Number of harvesting workers in main loop: " + Integer.toString(myHarvestingWorkers.size()));
-        
         //Worker actions.
 		for (Unit worker : myWorkers)
 		{	
-			if (forcedHarvestingWorkers.size() < minimumHarvesterCount) 
-			{
-    			HarvestResource(worker, getPlayer, pgs);
-    			forcedHarvestingWorkers.add(worker);
-			}
-			
-			//Use workers to defend if enemies are nearby.
-			if (nearbyEnemyUnits.size() > 0) 
-			{
-				WorkerDefense(worker);
-				//System.out.print("Workers defending!" + "\n");
-			}
-			
-    		//Send workers to harvest.
-			else if (getAbstractAction(worker) instanceof Harvest != true) 
-    		{
-    			HarvestResource(worker, getPlayer, pgs);
-    		}
+			workerBehaviour(worker, getPlayer, pgs);
 		}
        
 		
@@ -366,53 +346,24 @@ public class MangoBot extends AbstractionLayerAI
     //Should be replaced!
     public void workerBehaviour(Unit worker, Player player, PhysicalGameState pgs) 
     {
-            Unit closestBase = null;
-            Unit closestResource = null;
-            int closestDistance = 0;
-            
-            //Get closest resources
-            for (Unit u2 : pgs.getUnits()) 
-            {
-                if (u2.getType().isResource) 
-                {
-                    int d = Math.abs(u2.getX() - worker.getX()) + Math.abs(u2.getY() - worker.getY());
-                    if (closestResource == null || d < closestDistance) 
-                    {
-                        closestResource = u2;
-                        closestDistance = d;
-                    }
-                }
-            }
-            
-            closestDistance = 0;
-            
-            //Get closest stockpile (player's base)
-            for (Unit u2 : pgs.getUnits()) 
-            {
-                if (u2.getType().isStockpile && u2.getPlayer() == player.getID()) 
-                {
-                    int d = Math.abs(u2.getX() - worker.getX()) + Math.abs(u2.getY() - worker.getY());
-                    if (closestBase == null || d < closestDistance) 
-                    {
-                        closestBase = u2;
-                        closestDistance = d;
-                    }
-                }
-            }
-            
-            //Harvest
-            if (closestResource != null && closestBase != null) 
-            {
-    			//This worker's current action
-    			AbstractAction currentWorkerAction = getAbstractAction(worker);
-    			
-    			//If not already attacking, harvest
-    			if (currentWorkerAction instanceof Attack == false) 
-    			{
-                	harvest(worker, closestResource, closestBase);
-    			}   			
-
-            }
+		if (forcedHarvestingWorkers.size() < minimumHarvesterCount) 
+		{
+			HarvestResource(worker, player, pgs);
+			forcedHarvestingWorkers.add(worker);
+		}
+		
+		//Use workers to defend if enemies are nearby.
+		if (nearbyEnemyUnits.size() > 0) 
+		{
+			WorkerDefense(worker);
+			//System.out.print("Workers defending!" + "\n");
+		}
+		
+		//Send workers to harvest.
+		else if (getAbstractAction(worker) instanceof Harvest != true) 
+		{
+			HarvestResource(worker, player, pgs);
+		}
         }    	
     
     
@@ -442,15 +393,56 @@ public class MangoBot extends AbstractionLayerAI
 		//Send non-harvesting workers to attack first nearby enemy
 		if (getAbstractAction(worker) instanceof Harvest != true) 
 		{
-			attack(worker, targetEnemy);
+			//attack(worker, targetEnemy);
+			BasicOffense(worker);
 		} 				
     	
 		//Send harvesting workers to help if there is at least one worker still harvesting
 		else if ((myHarvestingWorkers.size() > 1) && (forcedHarvestingWorkers.contains(worker) == false)) 
     	{
-    		attack(worker, targetEnemy);    		
+    		//attack(worker, targetEnemy);  
+			BasicOffense(worker);
     	}
     }    
+    
+    
+    public void BasicOffense(Unit unit) 
+    {
+    	//Find the closest enemy to this unit and attack it.
+    	Unit target = getClosestEnemy(unit);
+    	
+    	if (target != null) 
+    	{
+        	attack(unit, target);
+    	}
+
+    }
+    
+    public Unit getClosestEnemy(Unit unit) 
+    {
+    	int closestEnemyDistance = 100000;
+    	Unit closestEnemy = null;
+    	
+    	//Check through enemy list
+    	for (Unit enemyUnit : allEnemyUnits) 
+    	{
+    		int enemyDistance = Math.abs(enemyUnit.getX() - unit.getX()) + Math.abs(enemyUnit.getY() - unit.getY());	
+    		
+    		if (enemyDistance < closestEnemyDistance)
+			{
+    			closestEnemyDistance = enemyDistance;
+    			closestEnemy = enemyUnit;    			
+			}
+    	}    	
+    	
+    	return closestEnemy;
+    }
+    
+    /*------------------
+     * Build Functions
+     * ----------------*/
+    
+    
     
     /*------------------
      * Utility Functions
@@ -618,7 +610,11 @@ public class MangoBot extends AbstractionLayerAI
     	Unit closestResource = GetClosestResource(worker, pgs);
     	Unit closestStockpile = GetClosestStockpile(worker, player, pgs);
     	
-    	harvest(worker, closestResource, closestStockpile);
+    	if (closestResource != null && closestStockpile != null) 
+    	{
+        	harvest(worker, closestResource, closestStockpile);	
+    	}    	
+
     }
     
     
