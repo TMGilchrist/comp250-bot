@@ -218,8 +218,11 @@ public class MangoBot extends AbstractionLayerAI
      * Battle Functions
      * ----------------*/
     
-    //Behaviour pattern where workers engage nearby enemies and then return to mining.
-    //Currently broken as the one worker that should remain harvesting attacks as it often sees workers on their way to harvest!!!!
+    /**
+     * Defend the base with workers, prioritising ones that are not harvesting.
+     * 
+     * @param worker: The active worker.
+     */
     public void WorkerDefense(Unit worker)
     {    	
 		//Send non-harvesting workers to attack first nearby enemy
@@ -241,7 +244,7 @@ public class MangoBot extends AbstractionLayerAI
     /**
      * Basic combat function. Unit attacks the closest valid enemy.
      * 
-     * @param unit <Unit>: The unit that will look for enemies to attack.
+     * @param unit: The unit that will look for enemies to attack.
      */
     public void BasicOffense(Unit unit) 
     {
@@ -261,8 +264,8 @@ public class MangoBot extends AbstractionLayerAI
     /**
      * Gets the closest enemy unit.
      * 
-     * @param unit <Unit>: Unit checking for closest enemy.
-     * @return <Unit> closestEnemy: The closest enemy unit.
+     * @param unit: Unit checking for closest enemy.
+     * @return closestEnemy: The closest enemy unit.
      */
     public Unit getClosestEnemy(Unit unit) 
     {
@@ -285,6 +288,7 @@ public class MangoBot extends AbstractionLayerAI
     	return closestEnemy;
     }
     
+    
     /*------------------
      * Build Functions
      * ----------------*/
@@ -294,9 +298,14 @@ public class MangoBot extends AbstractionLayerAI
     /*------------------
      * Utility Functions
      * ----------------*/
-        
-    //Check for enemies that are nearby.
-    //Search within the checkRadius.
+           
+    /**
+     * Check for enemies that are nearby.
+     * Search within the checkRadius.
+     * 
+     * @param pgs: The physical game state.
+     * @param checkRadius: The radius in tiles to check for nearby enemies.
+     */
     public void CheckNearbyEnemies(PhysicalGameState pgs, int checkRadius) 
     {    	
     	//Check through enemy list
@@ -317,8 +326,14 @@ public class MangoBot extends AbstractionLayerAI
     	    	
     }
     
-    //Tracks units in the game adding them to the unit lists. 
-    //Done from the perspective of the selected player.
+    
+    /**
+     * Tracks units in the game adding them to the unit lists. 
+     * Done from the perspective of the selected player.
+     * 
+     * @param player: The player tracking the units.
+     * @param pgs: The physical game state.
+     */
     public void TrackUnits(int player, PhysicalGameState pgs) 
     {
     	//Clear lists for new game tick.
@@ -403,7 +418,14 @@ public class MangoBot extends AbstractionLayerAI
         
     }
        
-    //Finds the closest resource patch.
+    
+    /**
+     * Finds the closest resource patch.
+     * 
+     * @param worker: The worker that is performing the check.
+     * @param pgs: The physical game state.
+     * @return closestResource: The closest resource patch to the worker.
+     */
     public Unit GetClosestResource(Unit worker, PhysicalGameState pgs) 
     {
         Unit closestResource = null;
@@ -426,7 +448,15 @@ public class MangoBot extends AbstractionLayerAI
         return closestResource;
     }
     
-    //Finds the closest base where resources can be deposited.
+    
+    /**
+     * Finds the closest base where resources can be deposited.
+     * 
+     * @param worker: The worker that is performing the check.
+     * @param player: The player that owns the worker.
+     * @param pgs: The physical game state.
+     * @return closestBase: The closest base to the worker.
+     */
     public Unit GetClosestStockpile(Unit worker, Player player, PhysicalGameState pgs) 
     {
         Unit closestBase = null;
@@ -450,16 +480,43 @@ public class MangoBot extends AbstractionLayerAI
         
     }
     
-    //Target worker harvests from nearest resource patch and deposits at the nearest base.
+    
+    /**
+     * Target worker harvests from nearest resource patch and deposits at the nearest base.
+     * 
+     * @param worker: The worker that is harvesting.
+     * @param player: The player that owns the worker.
+     * @param pgs: The physical game state.
+     */
     public void HarvestResource(Unit worker, Player player, PhysicalGameState pgs) 
     {
     	Unit closestResource = GetClosestResource(worker, pgs);
     	Unit closestStockpile = GetClosestStockpile(worker, player, pgs);
     	
-    	if (closestResource != null && closestStockpile != null) 
+    	//When no resources are left, send worker to attack
+    	if (closestResource == null) 
+    	{
+    		System.out.println("No resources left!");
+    		
+    		if (forcedHarvestingWorkers.contains(worker) == true) 
+    		{
+    			forcedHarvestingWorkers.remove(worker);
+    		}
+    		
+    		BasicOffense(worker);
+    	}    	
+    	
+    	else if (closestStockpile == null) 
+    	{
+    		System.out.println("No base left!");
+    		//Rebuild base or attack?
+    		BasicOffense(worker);
+    	}
+    	
+    	else 
     	{
         	harvest(worker, closestResource, closestStockpile);	
-    	}    	
+    	}
 
     }
     
